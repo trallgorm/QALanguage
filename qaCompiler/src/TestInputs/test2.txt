@@ -1,0 +1,2 @@
+main :
+step 1 : click button with value "Google" | current URL should be http://www.google.ca/

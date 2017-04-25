@@ -1,0 +1,153 @@
+// CUP specification for a simple expression evaluator (no actions)
+package Parser;
+
+import java_cup.runtime.*;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamWriter;
+import java.io.*;
+
+import javax.xml.transform.*;
+import javax.xml.transform.stream.*;
+
+/* Terminals (tokens returned by the scanner). */
+terminal MAIN;
+terminal COLON;
+terminal NEWLINE;
+terminal ID;
+terminal PIPE;
+terminal INTEGER;
+terminal STEPLITERAL;
+terminal BUTTON;
+terminal WEBPAGE;
+terminal TEXTFIELD;
+terminal THAT;
+terminal HAVE;
+terminal LOCALITYINDIC;
+terminal POSITIONINDIC;
+terminal CONTAIN;
+terminal TIME;
+terminal RESULTACTION;
+terminal URL;	
+terminal ATTRIBUTE;
+terminal WITH;
+terminal STRING_LITERAL;
+terminal SHOULD;
+terminal VALUE;
+terminal DO;
+terminal IF;
+terminal GO;
+terminal TO;
+terminal INTO;
+terminal ENTER;
+terminal OTHERWISE;
+terminal IS;
+terminal EXISTS;
+terminal THERE;
+terminal EXIT;
+terminal CLICK;
+terminal REFRESH;
+terminal TEXT;
+terminal NUMBER;
+terminal FROM;
+terminal PLUS;
+terminal MINUS;
+terminal BE;
+terminal URL_LITERAL;
+terminal PREDEFINED;
+
+/* Nonterminals */
+nonterminal Program;
+nonterminal MainClass;
+nonterminal Function;
+nonterminal SetOfSteps;
+nonterminal Step;
+nonterminal SetOfFunction;
+nonterminal Stmt;
+nonterminal Result;
+nonterminal StepNumber;
+nonterminal ObjectExpr;
+nonterminal ShouldPhrase;
+nonterminal OtherwiseStmt;
+nonterminal IntegerTime;
+nonterminal IntegerExpr;
+nonterminal DocumentObj;
+nonterminal SetOfNewline;
+nonterminal StepLine;
+nonterminal IfStmt;
+nonterminal IntOperation;
+nonterminal StrOperation;
+nonterminal StringExpr;
+
+precedence left StringExpr;
+
+/* The grammar */
+Program     	::= MainClass:MainClass SetOfFunction:SetOfFunctions;
+MainClass  		::= SetOfNewline:SetOfNewLine MAIN:Main COLON:Colon NEWLINE:Newline SetOfSteps:SetOfSteps;
+Function   		::= ID:ID COLON:Colon NEWLINE:Newline SetOfSteps:SetOfSteps;
+					
+SetOfFunction  	::= Function:Function SetOfFunction:SetOfFunctions
+                    |;
+					
+SetOfSteps 		::= Step:Step SetOfSteps:SetOfSteps
+                    |;
+
+StepLine        ::= StepNumber:StepNumber COLON:Colon Stmt:Stmt PIPE:Pipe Result:Result
+                    |StepNumber:StepNumber COLON:Colon IfStmt:IfStmt PIPE:Pipe Result:Result;
+
+SetOfNewline    ::= NEWLINE:Newline SetOfNewline:SetOfNewLine
+                    |;
+
+Step      		::= StepLine:StepLine SetOfNewline:SetOfNewLine;
+
+StepNumber  	::= STEPLITERAL:Stepliteral INTEGER:Integer;
+
+DocumentObj     ::= BUTTON:Button | WEBPAGE:Webpage | TEXTFIELD:Textfield;
+
+Result     		::= ObjectExpr:ObjectExpr ShouldPhrase:ShouldPhrase
+					|;
+					
+ObjectExpr 		::= DocumentObj:DocumentObject THAT:That HAVE:Have VALUE:Value STRING_LITERAL:String_literal
+					| LOCALITYINDIC:LocalityIndic DocumentObj:DocumentObject
+					| DocumentObj:DocumentObject WITH:With ATTRIBUTE:Attribute STRING_LITERAL:String_literal
+					| DocumentObj:DocumentObject WITH:With VALUE:Value STRING_LITERAL:String_literal
+					| DocumentObj:DocumentObject POSITIONINDIC:Positionindic URL:URL
+					| LOCALITYINDIC:LocalityIndic URL_LITERAL:URL_Literal
+					| PREDEFINED:Predefined ID:ID;
+
+OtherwiseStmt	::= OTHERWISE:Otherwise Stmt:Stmt
+                    |;
+
+Stmt      		::= DO:Do StepNumber:StepNumber IntegerTime:IntegerTime
+                    |DO:Do ID:ID IntegerTime:IntegerTime
+					|GO:Go TO:To URL:URL
+					|GO:Go TO:To StepNumber:StepNumber
+					|ENTER:Enter StringExpr:StringExpr INTO:Into ObjectExpr:ObjectExpr
+					|ENTER:Enter IntegerExpr:IntegerExpr INTO:Into ObjectExpr:ObjectExpr
+					|CLICK:Click ObjectExpr:ObjectExpr
+					|REFRESH:Refresh ObjectExpr:ObjectExpr
+					|EXIT:Exit;
+
+IfStmt          ::= IF:If THERE:There IS:Is ObjectExpr:ObjectExpr Stmt:Stmt OtherwiseStmt:OtherwiseStmt
+                    |IF:If THERE:There EXISTS:Exists ObjectExpr:ObjectExpr Stmt:Stmt OtherwiseStmt:OtherwiseStmt;
+
+IntegerTime     ::= IntegerExpr:IntegerExpr TIME:Time
+                    |;
+
+IntegerExpr     ::= INTEGER:Integer
+                    | NUMBER:Number FROM:From ObjectExpr:ObjectExpr
+                    | NUMBER:Number FROM:From ObjectExpr:ObjectExpr IntOperation:IntOperation IntegerExpr:IntegerExpr
+                    | INTEGER:Integer IntOperation:IntOperation IntegerExpr:IntegerExpr;
+
+StringExpr     ::= STRING_LITERAL:String_literal
+                    | TEXT:Text FROM:From ObjectExpr:ObjectExpr
+                    | TEXT:Text FROM:From ObjectExpr:ObjectExpr StrOperation:StrOperation StringExpr:StringExpr
+                    | STRING_LITERAL:String_literal StrOperation:StrOperation StringExpr:StringExpr;
+ 
+ShouldPhrase 	::= SHOULD:Should HAVE:Have VALUE:Value STRING_LITERAL:String_literal
+					| SHOULD:Should CONTAIN:Contain STRING_LITERAL:String_literal
+					| SHOULD:Should BE:Be URL:URL;
+
+IntOperation    ::= PLUS:Plus | MINUS:Minus;
+
+StrOperation    ::= PLUS:Plus;
+				

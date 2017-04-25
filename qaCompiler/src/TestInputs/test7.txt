@@ -1,0 +1,2 @@
+main :
+step 1 : if there is button with value "Google Search" enter "test" into textfield with title "Search" otherwise click button with value "Google" |

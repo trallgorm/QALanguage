@@ -1,0 +1,2 @@
+main :
+step 1 : enter number from textfield with title "InputA" minus number from textfield with title "InputB" into textfield with title "Search" |

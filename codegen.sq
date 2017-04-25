@@ -1,0 +1,351 @@
+declare function local:showStepNumber($x as document-node())
+{
+	for $y at $pos in $x//Program/MainClass/SetOfSteps/Step
+	where $y/StepLine/StepNumber/Integer = 1
+	return $y
+};
+
+declare function local:firstStepFunction($setOfSteps as node(),$functionname as xs:string)
+as xs:string
+{
+	let $firstStep := ($setOfSteps/Step)[1]
+	return "def "
+	||$functionname 
+	|| "step(browser, loop = False):"
+	||"&#10;"
+	||"	return "
+	||$functionname
+	||"step"
+	||$firstStep/StepLine/StepNumber/Integer
+	||"(browser, loop)"
+};
+declare function local:getNextStep($stepnumber,$stepcount)
+as xs:string
+{
+	if ($stepnumber=$stepcount) then
+	""
+	else
+	"step"||fn:sum((1,$stepnumber))||"(browser,loop)"
+};
+
+declare function local:objectExprFunction($objectExpr) 
+as xs:string
+{
+	let $variant := $objectExpr/@variant
+	return switch($variant)
+		case "1" return "browser.html"
+		case "2" return 'browser.find_by_id("' || $objectExpr/String_literal || '").first'
+		case "3" return 'browser.find_by_id("' || $objectExpr/String_literal || '")'
+		case "5" return "browser.url"
+		default return ""
+};
+
+
+declare function local:ifStmtFunction($ifStmt as node(),$stepnumber) 
+as xs:string
+{
+	"	if len(" 
+	||local:objectExprFunction($ifStmt/ObjectExpr)
+	||")>0:"|| "&#10;"
+	||"		"
+	||local:stmtFunction($ifStmt/Stmt,$stepnumber)|| "&#10;"
+	||"	else:"|| "&#10;"
+	||"		"
+	||local:stmtFunction($ifStmt/OtherwiseStmt/Stmt,$stepnumber)|| "&#10;"
+};
+
+declare function local:shouldHaveValue($result, $stepnumber) 
+as xs:string
+{
+	".value!="
+	||'"'||$result/ShouldPhrase/String_literal||'":'|| "&#10;"
+	||'		return "'
+	||$stepnumber
+	||'"'
+};
+
+declare function local:shouldContain($result, $stepnumber) 
+as xs:string
+{
+	'.find("'
+	||$result/ShouldPhrase/String_literal
+	||'") == -1:' || "&#10;"
+	||'		return "'
+	||$stepnumber
+	||'"'
+};
+
+declare function local:shouldBeURL($result, $stepnumber) 
+as xs:string
+{
+	' != "' 
+	|| $result/ShouldPhrase/URL ||'":'||'"&#10;'
+	||'		return "'
+	||$stepnumber
+	||'"'
+};
+
+declare function local:shouldPhraseFunction($result, $stepnumber) 
+as xs:string
+{
+ let $variant := $result/ShouldPhrase/@variant
+	return switch($variant)
+		case "0" return local:shouldHaveValue($result, $stepnumber)
+		case "1" return local:shouldContain($result, $stepnumber)
+		case "2" return local:shouldBeURL($result, $stepnumber)
+		default return ""
+};
+
+declare function local:goToUrl($stmt as node()) 
+as xs:string
+{
+	'	url = "' || $stmt/URL || '"' || "&#10;"
+	||"	if not (url.endswith(SLASH)):" || "&#10;"
+	||"		url += SLASH" || "&#10;"
+	||"	browser.visit(url)"|| "&#10;"
+};
+
+declare function local:stringExpr($stmt as node()) 
+as xs:string
+{
+	let $variant := $stmt/StringExpr/@variant
+	return switch($variant)
+		case "0" return '"'||$stmt/StringExpr/String_literal||'"'
+		case "2" return 
+		fold-right($stmt/StringExpr/ObjectExpr,'""',function($objectexpr,$acc){local:objectExprFunction($objectexpr)||".value+" || $acc})
+		default return '"'||$stmt/String_literal||'"'
+};
+
+declare function local:enterString($stmt as node()) 
+as xs:string
+{
+
+	"	"
+	||local:objectExprFunction($stmt/ObjectExpr)
+	||'.type('
+	||local:stringExpr($stmt)
+	||')'
+};
+
+declare function local:integerExpr($stmt as node()) 
+as xs:string
+{
+	let $variant := $stmt/IntegerExpr/@variant
+	return switch($variant)
+	case "2" return
+	fold-right($stmt/IntegerExpr/ObjectExpr,'0',function($objectexpr,$acc){"float(" ||local:objectExprFunction($objectexpr)||".value)+" || $acc})
+	default return $stmt/Integer
+};
+
+declare function local:enterInteger($stmt as node()) 
+as xs:string
+{
+
+	 "	"
+	||local:objectExprFunction($stmt/ObjectExpr)
+	||'.type(str('
+	||local:integerExpr($stmt)
+	||'))'
+	
+};
+
+declare function local:goToStep($stmt as node()) 
+as xs:string
+{
+"return step"
+||$stmt/StepNumber/Integer
+||"(browser,loop)"
+};
+
+declare function local:clickButton($stmt as node()) 
+as xs:string
+{
+"	oldURL=browser.url"|| "&#10;"
+||"	"
+||local:objectExprFunction($stmt/ObjectExpr)
+||".first.click()"|| "&#10;"
+||"	sleep(1)"|| "&#10;"
+||"	d = 0"||"&#10;"
+||"	newURL = browser.url"|| "&#10;"
+||'	while oldURL == newURL or browser.evaluate_script("document.readyState")!="complete":'|| "&#10;"
+||"		sleep(0.1)"|| "&#10;"
+||"		d+=1"|| "&#10;"
+||"		if d>10000:"|| "&#10;"
+||'			return "5"'|| "&#10;"
+};
+
+declare function local:loopStep($stmt as node(),$functionname,$stepnumber) 
+as xs:string
+{
+"	c=0"|| "&#10;"
+||"	"
+||"for c in range (0,"
+||$stmt/IntegerTime/Integer
+||"):"|| "&#10;"
+||"		"
+||"err="
+||$functionname
+||"step"
+||$stmt/StepNumber/Integer
+||"(browser, loop=True)"|| "&#10;"
+||"		if not (err == None) and not (err.isspace()) and not (len(err) == 0):" || "&#10;"
+||'			return "'
+||$stepnumber
+||'"'|| "&#10;"
+
+};
+
+declare function local:doFunction($stmt as node(),$stepnumber) 
+as xs:string
+{
+	let $variant := $stmt/IntegerTime/@variant
+	return switch($variant)
+		case "0" return local:loopStep($stmt,$stmt/Id||"_",$stepnumber)
+		case "1" return "	err="||$stmt/ID||"_step(browser,loop=True)"
+		default return ""
+};
+
+declare function local:stmtFunction($stmt, $stepnumber) 
+as xs:string
+{
+	let $variant := $stmt/@variant
+	return switch($variant)
+		case "0" return local:loopStep($stmt,"",$stepnumber)
+		case "1" return local:doFunction($stmt,$stepnumber)
+		case "2" return local:goToUrl($stmt)
+		case "3" return local:goToStep($stmt)
+		case "4" return local:enterString($stmt)
+		case "5" return local:enterInteger($stmt)
+		case "6" return local:clickButton($stmt)
+		case "7" return "	browser.reload()"
+		default return "SYNTAX ERROR"
+	
+};
+
+declare function local:resultFunction($result as node(),$stepnumber) 
+as xs:string
+{
+	let $variant := $result/@variant
+	return switch($variant)
+		case "0" return "	if " || local:objectExprFunction($result/ObjectExpr) || local:shouldPhraseFunction($result, $stepnumber) 
+		default return ""
+};
+
+declare function local:functionFunction($function) 
+as xs:string
+{
+
+	local:firstStepFunction($function/SetOfSteps, $function/ID||"_")
+	||"&#10;"
+	||"&#10;"
+	||fold-right($function/SetOfSteps/Step,"",function($step,$acc){local:stepFunction($step, $function/ID||"_",count($function/SetOfSteps/Step)) || $acc})
+};
+
+declare function local:stepFunction($step, $fuctionname,$stepcount) 
+as xs:string
+{
+	if ($step/StepLine/Stmt) then
+	"def "
+	||$fuctionname
+	||"step"
+	||$step/StepLine/StepNumber/Integer
+	||"(browser, loop=False):"
+	||"&#10;"
+	||"	"
+	||"#Step " 
+	||$step/StepLine/StepNumber/Integer
+	||"&#10;"
+	||"&#10;"
+	||local:stmtFunction($step/StepLine/Stmt,$step/StepLine/StepNumber/Integer)
+	||"&#10;"
+	||"	#Checking Step" || $step/StepLine/StepNumber/Integer ||"&#10;"
+	||local:resultFunction($step/StepLine/Result,$step/StepLine/StepNumber/Integer)
+	||"&#10;"
+	||"	if loop:"
+	||"&#10;"
+	||"		return"||"&#10;"
+	||"	return "
+	||local:getNextStep($step/StepLine/StepNumber/Integer,$stepcount)
+	||"&#10;"
+	else if ($step/StepLine/IfStmt) then
+	"def "
+	||$fuctionname
+	||"step"
+	||$step/StepLine/StepNumber/Integer
+	||"(browser, loop=False):"
+	||"&#10;"
+	||"	"
+	||"#Step " 
+	||$step/StepLine/StepNumber/Integer
+	||"&#10;"
+	||"&#10;"
+	||local:ifStmtFunction($step/StepLine/IfStmt,$step/StepLine/StepNumber/Integer)
+	||"&#10;"
+	||"	#Checking Step" || $step/StepLine/StepNumber/Integer ||"&#10;"
+	||local:resultFunction($step/StepLine/Result,$step/StepLine/StepNumber/Integer)
+	||"&#10;"
+	||"	if loop:"
+	||"&#10;"
+	||"		return"||"&#10;"
+	||"	return "
+	||local:getNextStep($step/StepLine/StepNumber/Integer,$stepcount)
+	||"&#10;"
+	else if ($step/StepLine/Exit) then
+	"def "
+	||$fuctionname
+	||"step"
+	||$step/StepLine/StepNumber/Integer
+	||"(browser, loop=False):"
+	||"&#10;"
+	||"	"
+	||"#Step " 
+	||$step/StepLine/StepNumber/Integer
+	||"&#10;"
+	||"&#10;"
+	||"	return"
+	||"&#10;"
+	||"	#Checking Step" || $step/StepLine/StepNumber/Integer ||"&#10;"	||"	if loop:"
+	||"&#10;"
+	||"		return"||"&#10;"
+	else
+	""
+};
+
+let $setOfSteps := doc('$INPUTFILE')//Program/MainClass/SetOfSteps
+let $setOfFunction := doc('$INPUTFILE')//Program/SetOfFunction
+return "from splinter import Browser" || "&#10;"
+||"from time import sleep" || "&#10;"
+|| "&#10;" 
+|| "&#10;" 
+|| 'SLASH = "/"'
+|| "&#10;" 
+|| "&#10;"
+|| local:firstStepFunction($setOfSteps, "")
+|| "&#10;" 
+|| "&#10;"
+|| fold-right($setOfFunction/Function,"",function($function,$acc){local:functionFunction($function) || $acc})
+|| "&#10;" 
+|| "&#10;"
+|| fold-right($setOfSteps/Step,"",function($step,$acc){local:stepFunction($step,"",count($setOfSteps/Step)) || $acc})
+|| "&#10;" 
+|| "&#10;"
+|| "def checkSteps():" || "&#10;"
+|| "	browser=Browser('chrome')"|| "&#10;"
+|| "	err = step(browser)" || "&#10;"
+|| "&#10;"
+|| "	#program is done" || "&#10;"
+|| "	browser.quit()" || "&#10;"
+|| "&#10;"
+|| "	#return the failed step" || "&#10;"
+|| "	if not (err == None) and not (err.isspace()) and not (len(err) == 0):" || "&#10;"
+|| '		return "Program failed on step: " + err + "\n"' || "&#10;"
+|| "&#10;"
+|| '	return "The testcase passed"' || "&#10;"
+|| "&#10;"
+|| "&#10;"
+|| "if __name__ == '__main__':" || "&#10;"
+|| "	print(checkSteps())" || "&#10;"
+
+
+
+

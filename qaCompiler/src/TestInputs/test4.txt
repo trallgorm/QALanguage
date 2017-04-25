@@ -1,0 +1,2 @@
+main :
+step 1 : enter "test" into textfield with title "Search" | textfield with title "Search" should have value "test"

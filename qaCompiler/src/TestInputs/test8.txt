@@ -1,0 +1,4 @@
+main :
+step 1 : go to step 3 |
+step 2 : enter "test" into textfield with title "Search" |textfield with title "Search" should have value "test"
+step 3 : click button with value "Google" | current URL should be http://www.google.ca/

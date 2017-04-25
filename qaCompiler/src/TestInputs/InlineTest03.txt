@@ -1,0 +1,4 @@
+main :
+step 1 : go to https://www.youtube.com/ | current URL should be https://www.youtube.com/
+step 2 : enter "test" into textfield with title "masthead-search-term" | textfield with title "masthead-search-term" should have value "test"
+step 3 : refresh current webpage | 

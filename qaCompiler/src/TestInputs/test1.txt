@@ -1,0 +1,2 @@
+main :
+step 1 :  go to https://www.google.ca/ | current URL should be http://www.google.ca/
