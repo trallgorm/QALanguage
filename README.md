@@ -4,7 +4,7 @@
 
 This language allows a developer to create tests that are not only executable, but human readable as well. A developer is able to write a testcase for a program (currently limited to webapps) which can then be executed automatically. For example here is a typical example of this language. The part before the | character is the instruction and the part after the | character is the expected result
 
-#Example
+# Example
 
 main :
 step 1 : go to https://www.youtube.com/ | current URL should be https://www.youtube.com/
