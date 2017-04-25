@@ -78,3 +78,5 @@ For example
 python backend.py NAMEOFYOURTESTCASE.html.xml NAMEOFYOURTESTCASE.py
 ```
 preprocessor file name is an optional parameter which allows developers to substitute pre-existing variables for easier reading.
+
+The compiled python code should be located in qaCompiler\outputs\CompiledCode with the filename you provided.
