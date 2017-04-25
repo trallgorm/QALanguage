@@ -47,3 +47,34 @@ step 2 : exit |
 
 step 3 : go to step 1 |
 
+# Output
+
+A python script which runs through the steps automatically and tells the user which step of the testcase failed, if any.
+
+# Benefits
+
+This language could potentially be a huge time saver for QA professionals. Because the testcases can simply be executed automatically, QA personnel does not need to do any of it. And if a testcase fails, anyone can look at it and see what went wrong, as it is designed to be as human readable as possible.
+
+# Usage 
+
+Write your testcases and place them in src/TestInputs then run the following from the qaCompiler folder. Similar scripts are provided in qaCompiler\buildv4.bat
+```
+java -jar ./lib/jflex-1.6.1.jar ./src/Scanner/qatest.flex
+
+java -jar ./lib/java-cup-11b.jar -locations -xmlactions -interface -destdir ./src/Parser/ < ./src/Parser/qatest.cup
+
+mkdir outputs
+
+javac -d outputs -sourcepath src -cp lib/java-cup-11b.jar;lib/jflex-1.6.1.jar src/*.java
+
+java -cp outputs;lib/java-cup-11b.jar;lib/jflex-1.6.1.jar Main src/TestInputs/NAMEOFYOURTESTCASE.txt outputs/NAMEOFYOURTESTCASE.html
+```
+Where NAMEOFYOURTESTCASE is the name of your testcase. Afterwards you want to go to qaCompiler/src/PythonBackend and run the command in the form of 
+```
+python backend.py [IR.xml] [outputFileName] [preprocessorFileName] 
+```
+For example
+```
+python backend.py NAMEOFYOURTESTCASE.html.xml NAMEOFYOURTESTCASE.py
+```
+preprocessor file name is an optional parameter which allows developers to substitute pre-existing variables for easier reading.
